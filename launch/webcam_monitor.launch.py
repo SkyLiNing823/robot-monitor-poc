@@ -8,6 +8,10 @@ def generate_launch_description():
         executable="webcam_camera_node",
         name="webcam_camera_node",
         output="screen",
+        parameters=[
+            {"camera_index": 0},
+            {"fps": 10.0},
+        ],
     )
 
     webcam_vision_node = Node(
@@ -15,6 +19,9 @@ def generate_launch_description():
         executable="webcam_vision_node",
         name="webcam_vision_node",
         output="screen",
+        parameters=[
+            {"brightness_threshold": 30.0},
+        ],
     )
 
     dummy_llm_node = Node(
@@ -31,9 +38,11 @@ def generate_launch_description():
         output="screen",
     )
 
-    return LaunchDescription([
-        webcam_camera_node,
-        webcam_vision_node,
-        dummy_llm_node,
-        alert_node,
-    ])
+    return LaunchDescription(
+        [
+            webcam_camera_node,
+            webcam_vision_node,
+            dummy_llm_node,
+            alert_node,
+        ]
+    )

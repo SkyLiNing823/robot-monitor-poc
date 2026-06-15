@@ -9,6 +9,11 @@ import cv2
 class WebcamVisionNode(Node):
     def __init__(self):
         super().__init__("webcam_vision_node")
+        self.declare_parameter("brightness_threshold", 30.0)
+
+        self.brightness_threshold = self.get_parameter(
+            "brightness_threshold"
+        ).value
         self.subscription_ = self.create_subscription(
             Image, "/camera/image_raw", self.image_callback, 10
         )
