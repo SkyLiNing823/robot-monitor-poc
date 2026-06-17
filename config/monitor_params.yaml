@@ -1,0 +1,8 @@
+webcam_camera_node:
+  ros__parameters:
+    camera_index: 0
+    fps: 10.0
+
+webcam_vision_node:
+  ros__parameters:
+    brightness_threshold: 30.0

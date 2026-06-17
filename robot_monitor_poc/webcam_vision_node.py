@@ -4,6 +4,7 @@ from sensor_msgs.msg import Image
 from std_msgs.msg import String
 from cv_bridge import CvBridge
 import cv2
+import json
 
 
 class WebcamVisionNode(Node):
@@ -11,9 +12,7 @@ class WebcamVisionNode(Node):
         super().__init__("webcam_vision_node")
         self.declare_parameter("brightness_threshold", 30.0)
 
-        self.brightness_threshold = self.get_parameter(
-            "brightness_threshold"
-        ).value
+        self.brightness_threshold = self.get_parameter("brightness_threshold").value
         self.subscription_ = self.create_subscription(
             Image, "/camera/image_raw", self.image_callback, 10
         )
@@ -31,18 +30,24 @@ class WebcamVisionNode(Node):
 
     def run_brightness_detection(self, frame):
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        mean_brightness = gray.mean()
-        if mean_brightness < 30:
-            return (
-                f"object=dark_scene; "
-                f"confidence=0.95; "
-                f"brightness={mean_brightness:.2f}"
-            )
-        return (
-            f"object=normal_scene; "
-            f"confidence=0.80; "
-            f"brightness={mean_brightness:.2f}"
-        )
+        mean_brightness = float(gray.mean())
+
+        if mean_brightness < self.brightness_threshold:
+            result = {
+                "object": "dark_scene",
+                "confidence": 0.95,
+                "brightness": round(mean_brightness, 2),
+                "threshold": float(self.brightness_threshold),
+            }
+        else:
+            result = {
+                "object": "normal_scene",
+                "confidence": 0.80,
+                "brightness": round(mean_brightness, 2),
+                "threshold": float(self.brightness_threshold),
+            }
+
+        return json.dumps(result)
 
 
 def main(args=None):

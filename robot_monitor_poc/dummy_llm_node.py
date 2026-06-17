@@ -1,6 +1,7 @@
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import String
+import json
 
 
 class DummyLLMNode(Node):
@@ -14,46 +15,66 @@ class DummyLLMNode(Node):
 
     def detection_callback(self, msg):
         self.get_logger().info(f"Received detection: {msg.data}")
-        semantic_msg = self.run_fake_reasoning(msg.data)
+
+        try:
+            detection = json.loads(msg.data)
+        except json.JSONDecodeError:
+            self.get_logger().error(f"Failed to parse detection JSON: {msg.data}")
+            return
+
+        semantic_status = self.run_fake_reasoning(detection)
+
         status_msg = String()
-        status_msg.data = semantic_msg
+        status_msg.data = json.dumps(semantic_status)
+
         self.publisher_.publish(status_msg)
+
         self.get_logger().info(f"Published semantic status: {status_msg.data}")
 
-    def run_fake_reasoning(self, detection_result):
-        if "object=dark_scene" in detection_result:
-            return (
-                "risk_level=medium; "
-                "summary=The camera view is too dark for reliable monitoring; "
-                "action=notify_operator"
-            )
+    def run_fake_reasoning(self, detection):
+        object_name = detection.get("object", "unknown")
+        brightness = detection.get("brightness", None)
+        confidence = detection.get("confidence", None)
 
-        if "object=normal_scene" in detection_result:
-            return (
-                "risk_level=none; "
-                "summary=The camera view is normal; "
-                "action=no_action"
-            )
+        if object_name == "dark_scene":
+            return {
+                "risk_level": "medium",
+                "summary": (
+                    f"The camera view is too dark for reliable monitoring. "
+                    f"brightness={brightness}, confidence={confidence}"
+                ),
+                "action": "notify_operator",
+            }
 
-        if "object=person" in detection_result:
-            return (
-                "risk_level=medium; "
-                "summary=A person is detected near the robot; "
-                "action=notify_operator"
-            )
+        if object_name == "normal_scene":
+            return {
+                "risk_level": "none",
+                "summary": (
+                    f"The camera view is normal. "
+                    f"brightness={brightness}, confidence={confidence}"
+                ),
+                "action": "no_action",
+            }
 
-        if "object=chair" in detection_result:
-            return (
-                "risk_level=low; "
-                "summary=A chair is detected in the scene; "
-                "action=no_action"
-            )
+        if object_name == "person":
+            return {
+                "risk_level": "medium",
+                "summary": "A person is detected near the robot.",
+                "action": "notify_operator",
+            }
 
-        return (
-            "risk_level=none; "
-            "summary=No relevant object detected; "
-            "action=no_action"
-        )
+        if object_name == "chair":
+            return {
+                "risk_level": "low",
+                "summary": "A chair is detected in the scene.",
+                "action": "no_action",
+            }
+
+        return {
+            "risk_level": "none",
+            "summary": "No relevant object detected.",
+            "action": "no_action",
+        }
 
 
 def main(args=None):
